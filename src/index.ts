@@ -1,23 +1,52 @@
-import screenshot from "screenshot-desktop";
-import { counter } from "./counter.js";
+import { setInterval } from "timers/promises";
+
+import { keyboard, screen, Key } from "@nut-tree/nut-js";
+
+import { logger } from "./logger.js";
+import { hasInternetConnection } from "./network.js";
 import {
-  down,
-  left,
-  mouse,
-  Point,
-  right,
-  straightTo,
-  up,
-} from "@nut-tree/nut-js";
+  isDisconnectedButtonVisible,
+  isEnterWorldButtonVisible,
+  isReconnectButtonVisible,
+} from "./states.js";
+import { isActiveWindowValid } from "./window.js";
 import "@nut-tree/template-matcher";
 
-// for await (const count of counter(5, 1, 1000)) {
-//   console.log(count);
-// }
+screen.config.resourceDirectory = "./images";
 
-// const image = await screenshot({ screen: 0, format: "png" });
+try {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  for await (const _interval of setInterval(5000)) {
+    if (!(await isActiveWindowValid())) {
+      console.log("Active window is not valid");
+      continue;
+    }
 
-// console.log(image);
+    if (await isDisconnectedButtonVisible()) {
+      console.log("You've been disconnected");
+      keyboard.pressKey(Key.Enter);
+      keyboard.releaseKey(Key.Enter);
+      continue;
+    }
 
-const target = new Point(500, 350);
-await mouse.setPosition(target);
+    if (await isReconnectButtonVisible()) {
+      if (!(await hasInternetConnection())) {
+        console.log("No internet connection");
+        continue;
+      }
+      console.log("Reconnecting...");
+      keyboard.pressKey(Key.Enter);
+      keyboard.releaseKey(Key.Enter);
+      continue;
+    }
+
+    if (await isEnterWorldButtonVisible()) {
+      console.log("You've been logged out, entering world");
+      keyboard.pressKey(Key.Enter);
+      keyboard.releaseKey(Key.Enter);
+      continue;
+    }
+  }
+} catch (error) {
+  logger.error(error);
+}
